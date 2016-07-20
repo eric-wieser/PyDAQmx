@@ -1,6 +1,7 @@
 import re
 import sys
 from ctypes import *
+import ctypes
 import warnings
 
 import DAQmxConfig
@@ -96,7 +97,7 @@ try:
     import numpy
 except ImportError:
     def array_type(string):
-        return eval('POINTER('+string+')')
+        return POINTER(getattr(ctypes, string))
 else:
     # Type conversion for numpy
     def numpy_conversion(string):
@@ -105,7 +106,7 @@ else:
         """
         #This function uses the fact that the name are the same name, 
         #except that numpy uses lower case
-        return eval('numpy.'+string.lower())
+        return getattr(numpy, string.lower())
     def array_type(string):
         """ Returns the array type required by ctypes when numpy is used """
         return numpy.ctypeslib.ndpointer(dtype = numpy_conversion(string),
@@ -139,14 +140,14 @@ type_list_array = ['int8','uInt8','int16','uInt16','int32','uInt32','float32','f
 # Each regular expression is assAciated with a ctypes type and a number giving the 
 # group in which the name of the variable is defined
 const_char = [(re.compile(r'(const char)\s*([^\s]*)\[\]'), CtypesString() ,2)]
-simple_type = [(re.compile('('+_type+')\s*([^\*\[]*)\Z'),eval(_type),2)
+simple_type = [(re.compile('('+_type+')\s*([^\*\[]*)\Z'),getattr(ctypes, _type),2)
      for _type in type_list]
 pointer_type = [(re.compile('('+_type+')\s*\*([^\*]*)\Z'),
-        eval('POINTER('+_type+')'),2) for _type in type_list]
+        POINTER(getattr(ctypes, _type)),2) for _type in type_list]
 pointer_type_array = [(re.compile('('+_type+')\s*((?:readArray|writeArray).*)\[\]\Z'),
     array_type(_type),2) for _type in type_list_array]
 pointer_type_2 = [(re.compile('('+_type+')\s*([^\s]*)\[\]\Z'),
-        eval('POINTER('+_type+')'),2) for _type in type_list]
+        POINTER(getattr(ctypes, _type)),2) for _type in type_list]
 
 const_char_etoile = [(re.compile(r'(const char)\s*\*([^\*]*)\Z'), CtypesString(), 2)] # match "const char * name"
 char_etoile = [(re.compile(r'(char)\s*\*([^\*]*)\Z'), c_char_p, 2)] # match "char * name"
